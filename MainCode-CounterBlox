@@ -1,0 +1,677 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+
+local HttpService = game:GetService("HttpService")
+local fetchedKeyRaw = game:HttpGet("https://pastebin.com/raw/36Ck4QeD")
+local keyList = {}
+
+for key in string.gmatch(fetchedKeyRaw, "[^\r\n]+") do
+    table.insert(keyList, key)
+end
+
+table.insert(keyList, "nigil")
+
+local Window = Rayfield:CreateWindow({
+    Name = "Zean Hub",
+    Icon = 0,
+    LoadingTitle = "Zean Hub",
+    LoadingSubtitle = "Credit: Sirius",
+    Theme = "Ocean",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Big Hub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "https://discord.gg/W6gKcTsP",
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Zean Hub Key System",
+        Subtitle = "Enter the key to unlock script",
+        Note = "Get key from our discord server",
+        FileName = "ZeanHubKey",
+        SaveKey = false,
+        GrabKeyFromSite = false,
+        Key = keyList
+    }
+})
+
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local function GetLocalCharacter()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char
+end
+
+local function GetLocalHumanoid()
+    local char = GetLocalCharacter()
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local char = GetLocalCharacter()
+local hum = GetLocalHumanoid()
+
+
+local function WaitUntilAlive()
+    repeat
+        task.wait(0.25)
+        local hum = GetLocalHumanoid()
+    until hum and hum.Health > 0
+end
+
+local Tab1 = Window:CreateTab("Aimbot", 4483362458)
+local Tab = Window:CreateTab("Misc", 4483362458)
+local Tab2 = Window:CreateTab("ESP", 4483362458)
+
+
+Tab:CreateSection("Main")
+
+local NoClipEnabled = false
+
+
+Tab:CreateToggle({
+    Name = "NoClip",
+    CurrentValue = false,
+    Callback = function(Value)
+        NoClipEnabled = Value
+    end
+})
+
+RunService.Stepped:Connect(function()
+	if NoClipEnabled then
+		local char = LocalPlayer.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") and part.CanCollide == true then
+					part.CanCollide = false
+				end
+			end
+		end
+	end
+end)
+
+local FlyEnabled = false
+local FlySpeed = 50
+local BodyGyro, BodyVelocity
+
+local function SetupFly()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart", 5)
+	local hum = char:WaitForChild("Humanoid", 5)
+
+	if FlyEnabled and hrp and hum then
+		-- Clean up any old body movers first
+		if BodyGyro then BodyGyro:Destroy() end
+		if BodyVelocity then BodyVelocity:Destroy() end
+
+		-- Create BodyGyro
+		BodyGyro = Instance.new("BodyGyro")
+		BodyGyro.P = 90000
+		BodyGyro.MaxTorque = Vector3.new(9000000000, 9000000000, 9000000000)
+		BodyGyro.CFrame = hrp.CFrame
+		BodyGyro.Parent = hrp
+
+		-- Create BodyVelocity
+		BodyVelocity = Instance.new("BodyVelocity")
+		BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		BodyVelocity.MaxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+		BodyVelocity.Parent = hrp
+
+		-- Disable gravity
+		hum.PlatformStand = true
+	end
+end
+
+local function StopFly()
+	if BodyGyro then BodyGyro:Destroy() BodyGyro = nil end
+	if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
+
+	local hum = GetLocalHumanoid()
+	if hum then
+		hum.PlatformStand = false
+	end
+end
+
+-- Fly Toggle UI
+Tab:CreateToggle({
+	Name = "Fly (Hold WASD, Space, Ctrl)",
+	CurrentValue = false,
+	Callback = function(Value)
+		FlyEnabled = Value
+
+		if FlyEnabled then
+			SetupFly()
+		else
+			StopFly()
+		end
+	end
+})
+
+-- Fly Speed Slider
+Tab:CreateSlider({
+	Name = "Fly Speed",
+	Range = {10, 300},
+	Increment = 5,
+	CurrentValue = 50,
+	Callback = function(Value)
+		FlySpeed = Value
+	end
+})
+
+-- Fly Movement
+RunService.RenderStepped:Connect(function()
+	if FlyEnabled and LocalPlayer and workspace.CurrentCamera then
+		local char = LocalPlayer.Character
+		if not char then return end
+
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if not hrp or not BodyVelocity or not BodyGyro then return end
+
+		local cam = workspace.CurrentCamera
+		local direction = Vector3.zero
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			direction += cam.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			direction -= cam.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			direction -= cam.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			direction += cam.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			direction += cam.CFrame.UpVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			direction -= cam.CFrame.UpVector
+		end
+
+		if direction.Magnitude > 0 then
+			direction = direction.Unit * FlySpeed
+		end
+
+		BodyVelocity.Velocity = direction
+		BodyGyro.CFrame = cam.CFrame
+	end
+end)
+
+-- Reapply Fly on respawn
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.5) -- Small delay to let character load
+	if FlyEnabled then
+		SetupFly()
+	end
+end)
+
+-- Clean up on character removing
+LocalPlayer.CharacterRemoving:Connect(function()
+	StopFly()
+end)
+
+
+
+Tab:CreateButton({
+    Name = "Force Remove hacks",
+    Callback = function()
+        Rayfield:Destroy()
+    end
+})
+
+
+-- AimBot Section
+Tab1:CreateSection("AimBot")
+
+
+
+-- ======= Aimbot Section =======
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+
+-- Settings
+local AimbotFOV = 100
+local AimbotKey = Enum.KeyCode.E
+local AimbotToggleMode = false
+local AimbotActive = false
+local WallCheck = true
+local TeamCheck = true
+local HitPart = "Head"
+local AutoFireEnabled = false
+local ShowFOVCircle = true
+
+-- Drawing FOV circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.Filled = false
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Transparency = 1
+FOVCircle.Visible = ShowFOVCircle
+
+RunService.RenderStepped:Connect(function()
+    local mouse = UserInputService:GetMouseLocation()
+    FOVCircle.Position = Vector2.new(mouse.X, mouse.Y)
+    FOVCircle.Radius = AimbotFOV
+    FOVCircle.Visible = ShowFOVCircle
+end)
+
+local function IsFFA()
+    local teams = {}
+    local playersWithNoTeam = 0
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Team then
+            teams[player.Team] = true
+        else
+            playersWithNoTeam = playersWithNoTeam + 1
+        end
+    end
+
+    local teamCount = 0
+    for _ in pairs(teams) do
+        teamCount = teamCount + 1
+    end
+
+    return teamCount <= 1 or playersWithNoTeam == #Players:GetPlayers()
+end
+
+local function IsVisible(targetPart)
+    local camera = workspace.CurrentCamera
+    local origin = camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.IgnoreWater = true
+
+    local result = workspace:Raycast(origin, direction, raycastParams)
+
+    if result then
+        return result.Instance:IsDescendantOf(targetPart.Parent)
+    else
+        return true
+    end
+end
+
+local function GetClosestPlayer()
+    local mousePos = UserInputService:GetMouseLocation()
+    local shortestDistance = AimbotFOV
+    local closestPlayer = nil
+
+    local ffaMode = IsFFA()
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if not (TeamCheck and not ffaMode and player.Team == LocalPlayer.Team) then
+                local targetPart = player.Character:FindFirstChild(HitPart)
+                if targetPart then
+                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist <= shortestDistance then
+                            if WallCheck then
+                                if IsVisible(targetPart) then
+                                    shortestDistance = dist
+                                    closestPlayer = player
+                                end
+                            else
+                                shortestDistance = dist
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Clean direct aim without prediction
+local function AimAtPlayer(player)
+    if not player.Character then return end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return end
+
+    local targetPart = player.Character:FindFirstChild(HitPart)
+    if not targetPart then return end
+
+    if WallCheck and not IsVisible(targetPart) then return end
+
+    local camera = workspace.CurrentCamera
+    camera.CFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
+
+    if AutoFireEnabled then
+        local mousePos = UserInputService:GetMouseLocation()
+        if IsVisible(targetPart) then
+            VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, false, game, 0)
+        end
+    end
+end
+
+-- Input listeners
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == AimbotKey then
+        if AimbotToggleMode then
+            AimbotActive = not AimbotActive
+        else
+            AimbotActive = true
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == AimbotKey and not AimbotToggleMode then
+        AimbotActive = false
+    end
+end)
+
+-- Main aimbot loop
+RunService.RenderStepped:Connect(function()
+    if AimbotActive then
+        local target = GetClosestPlayer()
+        if target then
+            AimAtPlayer(target)
+        end
+    end
+end)
+
+-- UI Toggles & Sliders (example, add to your UI creation section)
+
+Tab1:CreateToggle({ Name = "Enable Aimbot", CurrentValue = false, Callback = function(Value) IsAimbotOn = Value end })
+
+Tab1:CreateSection("Aimbot Settings")
+
+Tab1:CreateToggle({ Name = "Wall Check", CurrentValue = true, Callback = function(Value) WallCheck = Value end })
+Tab1:CreateToggle({ Name = "Ignore Teammates", CurrentValue = true, Callback = function(Value) TeamCheck = Value end })
+Tab1:CreateSlider({ Name = "Aimbot FOV", Range = {50, 2000}, Increment = 10, CurrentValue = 100, Callback = function(Value) AimbotFOV = Value end })
+Tab1:CreateDropdown({ Name = "Hit Part", Options = {"Head", "Torso"}, CurrentOption = {"Head"}, Callback = function(opt) HitPart = opt[1] end })
+Tab1:CreateDropdown({ Name = "Aimbot Keybind", Options = {"E", "Q", "F", "LeftShift"}, CurrentOption = {"E"}, Callback = function(opt) AimbotKey = Enum.KeyCode[opt[1]] end })
+Tab1:CreateToggle({ Name = "Toggle or Hold", CurrentValue = false, Callback = function(Value) AimbotToggleMode = Value end })
+Tab1:CreateToggle({ Name = "Auto Fire / Triggerbot", CurrentValue = false, Callback = function(Value) AutoFireEnabled = Value end })
+Tab1:CreateToggle({ Name = "Show FOV Circle", CurrentValue = true, Callback = function(Value) 
+    ShowFOVCircle = Value
+    FOVCircle.Visible = Value
+end })
+
+
+
+-- ESP Section
+local CleanESP = {}
+do
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local Camera = workspace.CurrentCamera
+	local LocalPlayer = Players.LocalPlayer
+
+	local masterToggle = false
+	local boxToggle = true
+	local tracerToggle = true
+	local nameToggle = false
+	local distanceToggle = false
+	local healthToggle = false
+	local ignoreTeamToggle = false
+
+	local drawings = {}
+
+	local function createESPForPlayer(player)
+		if drawings[player] then return end
+
+		drawings[player] = {
+			Box = Drawing.new("Square"),
+			Tracer = Drawing.new("Line"),
+			Name = Drawing.new("Text"),
+			Distance = Drawing.new("Text"),
+			HealthBar = Drawing.new("Line"),
+			HealthBG = Drawing.new("Line")
+		}
+
+		local d = drawings[player]
+
+		-- Box
+		d.Box.Visible = false
+		d.Box.Color = Color3.new(1, 1, 1)
+		d.Box.Thickness = 2
+		d.Box.Filled = false
+
+		-- Tracer
+		d.Tracer.Visible = false
+		d.Tracer.Color = Color3.new(1, 1, 1)
+		d.Tracer.Thickness = 1
+
+		-- Name
+		d.Name.Visible = false
+		d.Name.Center = true
+		d.Name.Outline = true
+		d.Name.Size = 13
+		d.Name.Color = Color3.new(1, 1, 1)
+
+		-- Distance
+		d.Distance.Visible = false
+		d.Distance.Center = true
+		d.Distance.Outline = true
+		d.Distance.Size = 12
+		d.Distance.Color = Color3.new(1, 1, 1)
+
+		-- Health bar
+		d.HealthBar.Visible = false
+		d.HealthBar.Color = Color3.fromRGB(0, 255, 0)
+		d.HealthBar.Thickness = 2
+
+		-- Health background
+		d.HealthBG.Visible = false
+		d.HealthBG.Color = Color3.fromRGB(0, 0, 0)
+		d.HealthBG.Thickness = 4
+	end
+
+	local function removeESPForPlayer(player)
+		if drawings[player] then
+			for _, obj in pairs(drawings[player]) do
+				if obj then obj:Remove() end
+			end
+			drawings[player] = nil
+		end
+	end
+
+	local function updateESP()
+		if not masterToggle then
+			for _, esp in pairs(drawings) do
+				for _, obj in pairs(esp) do
+					obj.Visible = false
+				end
+			end
+			return
+		end
+
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				if ignoreTeamToggle and player.Team == LocalPlayer.Team then
+					if drawings[player] then
+						for _, obj in pairs(drawings[player]) do
+							obj.Visible = false
+						end
+					end
+					continue
+				end
+
+				local char = player.Character
+				local hrp = char:FindFirstChild("HumanoidRootPart")
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if not hrp or not hum or hum.Health <= 0 then
+					removeESPForPlayer(player)
+					continue
+				end
+
+				createESPForPlayer(player)
+				local esp = drawings[player]
+
+				local headPos = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
+				local feetPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+				local rootPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+				if not onScreen then
+					for _, obj in pairs(esp) do
+						obj.Visible = false
+					end
+					continue
+				end
+
+				local height = math.abs(headPos.Y - feetPos.Y)
+				local width = height / 2
+				local x = rootPos.X - width / 2
+				local y = rootPos.Y - height / 2
+
+				-- Box
+				if boxToggle then
+					esp.Box.Visible = true
+					esp.Box.Size = Vector2.new(width, height)
+					esp.Box.Position = Vector2.new(x, y)
+				else
+					esp.Box.Visible = false
+				end
+
+				-- Tracer
+				if tracerToggle then
+					esp.Tracer.Visible = true
+					esp.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+					esp.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+				else
+					esp.Tracer.Visible = false
+				end
+
+				-- Name
+				if nameToggle then
+					esp.Name.Visible = true
+					esp.Name.Text = player.Name
+					esp.Name.Position = Vector2.new(rootPos.X, y - 15)
+				else
+					esp.Name.Visible = false
+				end
+
+				-- Distance
+				if distanceToggle then
+					local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude)
+					esp.Distance.Visible = true
+					esp.Distance.Text = "[" .. dist .. "m]"
+					esp.Distance.Position = Vector2.new(rootPos.X, y + height + 2)
+				else
+					esp.Distance.Visible = false
+				end
+
+				-- Health
+				if healthToggle then
+					local healthRatio = hum.Health / hum.MaxHealth
+					local barHeight = height * healthRatio
+
+					esp.HealthBar.Visible = true
+					esp.HealthBar.From = Vector2.new(x - 5, y + height)
+					esp.HealthBar.To = Vector2.new(x - 5, y + height - barHeight)
+
+					esp.HealthBG.Visible = true
+					esp.HealthBG.From = Vector2.new(x - 5, y)
+					esp.HealthBG.To = Vector2.new(x - 5, y + height)
+				else
+					esp.HealthBar.Visible = false
+					esp.HealthBG.Visible = false
+				end
+			else
+				removeESPForPlayer(player)
+			end
+		end
+	end
+
+	RunService.RenderStepped:Connect(updateESP)
+	Players.PlayerRemoving:Connect(removeESPForPlayer)
+
+	-- Public API
+	CleanESP.ToggleMaster = function(state) masterToggle = state end
+	CleanESP.ToggleBoxes = function(state) boxToggle = state end
+	CleanESP.ToggleTracers = function(state) tracerToggle = state end
+	CleanESP.ToggleNames = function(state) nameToggle = state end
+	CleanESP.ToggleDistance = function(state) distanceToggle = state end
+	CleanESP.ToggleHealth = function(state) healthToggle = state end
+	CleanESP.ToggleIgnoreTeam = function(state) ignoreTeamToggle = state end
+end
+
+
+Tab2:CreateSection("ESP")
+
+Tab2:CreateToggle({
+	Name = "ESP / WallHacks",
+	CurrentValue = false,
+	Callback = function(Value)
+		CleanESP.ToggleMaster(Value)
+	end
+})
+
+Tab2:CreateToggle({
+	Name = "Ignore Teammates",
+	CurrentValue = false,
+	Callback = function(Value)
+		CleanESP.ToggleIgnoreTeam(Value)
+	end
+})
+
+Tab2:CreateSection("ESP Settings")
+
+Tab2:CreateToggle({
+	Name = "ESP Boxes",
+	CurrentValue = true,
+	Callback = function(Value)
+		CleanESP.ToggleBoxes(Value)
+	end
+})
+
+Tab2:CreateToggle({
+	Name = "ESP Tracers",
+	CurrentValue = true,
+	Callback = function(Value)
+		CleanESP.ToggleTracers(Value)
+	end
+})
+
+Tab2:CreateToggle({
+	Name = "ESP Names",
+	CurrentValue = false,
+	Callback = function(Value)
+		CleanESP.ToggleNames(Value)
+	end
+})
+
+Tab2:CreateToggle({
+	Name = "ESP Distance",
+	CurrentValue = false,
+	Callback = function(Value)
+		CleanESP.ToggleDistance(Value)
+	end
+})
+
+Tab2:CreateToggle({
+	Name = "ESP Health Bars",
+	CurrentValue = false,
+	Callback = function(Value)
+		CleanESP.ToggleHealth(Value)
+	end
+})
+
+
+
+
+
+Rayfield:LoadConfiguration()
